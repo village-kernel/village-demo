@@ -15,7 +15,7 @@ CFLAGS    += -Wall -fdata-sections -ffunction-sections -fno-common
 ######################################
 # link script
 ######################################
-LDSCRIPT-BOOT  := -T app.lds
+LDSCRIPT-BOOT  := -T kernel.lds
 
 
 #######################################

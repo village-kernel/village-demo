@@ -20,7 +20,7 @@
             "name": "QEMU Debug x86 bios kernel",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/app/village-kernel.elf",
+            "program": "${workspaceFolder}/kernel/village-kernel.elf",
             "cwd": "${workspaceFolder}",
             "miDebuggerPath": "i386-elf-gdb",
             "miDebuggerServerAddress": "localhost:1234",
