@@ -4,9 +4,12 @@
 //
 // $Copyright: Copyright (C) village
 //###########################################################################
-#include "uefi.h"
+#include <uefi.h>
 
-int efi_main(void* image, EFISystemTable* systable)
+EFI_STATUS
+efi_main(EFI_HANDLE ImageHandle EFI_UNUSED, EFI_SYSTEM_TABLE *SystemTable)
 {
-	return 0;
+	SystemTable->ConOut->ClearScreen(SystemTable->ConOut);
+	SystemTable->ConOut->OutputString(SystemTable->ConOut, L"Hello UEFI!\n");
+	return EFI_SUCCESS;
 }

@@ -13,893 +13,1193 @@ extern "C" {
 
 #include "stddef.h"
 #include "stdint.h"
-#include "stdbool.h"
+
+/**************************** DEFINES ******************************/
+
+/// @brief Common UEFI Data Types
+typedef uint8_t  BOOLEAN;
+#ifndef __X86_X64__
+typedef int32_t  INTN;
+typedef uint32_t UINTN;
+#else
+typedef int64_t  INTN;
+typedef uint64_t UINTN;
+#endif
+typedef int8_t    INT8;
+typedef uint8_t   UINT8;
+typedef int16_t   INT16;
+typedef uint16_t  UINT16;
+typedef int32_t   INT32;
+typedef uint32_t  UINT32;
+typedef int64_t   INT64;
+typedef uint64_t  UINT64;
+//typedef int128_t  INT128;
+//typedef uint128_t UINT128;
+typedef char      CHAR8;
+typedef wchar_t   CHAR16;
+typedef void      VOID;
+typedef UINTN     EFI_STATUS;
+typedef void*     EFI_HANDLE;
+typedef void*     EFI_EVENT;
+typedef UINT64    EFI_LBA;
+typedef UINTN     EFI_TPL;
+
+/// @brief EFI_GUID
+typedef struct {
+	UINT32  data1;
+	UINT32  data2;
+	UINT32  data3;
+	UINT8   data4[8];
+} EFI_GUID;
 
 
-/// @brief Defines
-typedef void* EFIHandle;
-typedef void* EFIEvent;
-typedef unsigned int EFIStatus;
-typedef unsigned int EFITPL;
-typedef unsigned int uintn_t;
+/// @brief BOOLEAN
+#define FALSE 0
+#define TRUE  1
 
 
 /// @brief Prototype argument decoration for EFI parameters to indicate their direction
-/// @param IN - argument is passed into the function
-/// @param OUT - argument (pointer) is returned from the function
-/// @param OPTIONAL - argument is optional
-#ifndef IN
-    #define IN
-    #define OUT
-    #define OPTIONAL
-#endif
+/// @param IN - Datum is passed to the function.
+/// @param OUT - Datum is returned from the function.
+/// @param OPTIONAL - Passing the datum to the function is optional, and a NULL may be passed if the value is not supplied.
+/// @param CONST - Datum is read-only.
+/// @param EFIAPI Defines the calling convention for UEFI interfaces.Defines the calling convention for UEFI interfaces.
+#define IN
+#define OUT
+#define OPTIONAL
+#define CONST
+#define EFIAPI
 
 
-/// @brief EFITableHeader
+/// @brief EFI ERROR CODE
+#define EFI_ERROR(a)                    (((INTN) a) < 0)
+#define EFI_SUCCESS                               0
+#define EFI_LOAD_ERROR                  EFI_ERROR(1)
+#define EFI_INVALID_PARAMETER           EFI_ERROR(2)
+#define EFI_UNSUPPORTED                 EFI_ERROR(3)
+#define EFI_BAD_BUFFER_SIZE             EFI_ERROR(4)
+#define EFI_BUFFER_TOO_SMALL            EFI_ERROR(5)
+#define EFI_NOT_READY                   EFI_ERROR(6)
+#define EFI_DEVICE_ERROR                EFI_ERROR(7)
+#define EFI_WRITE_PROTECTED             EFI_ERROR(8)
+#define EFI_OUT_OF_RESOURCES            EFI_ERROR(9)
+#define EFI_VOLUME_CORRUPTED            EFI_ERROR(10)
+#define EFI_VOLUME_FULL                 EFI_ERROR(11)
+#define EFI_NO_MEDIA                    EFI_ERROR(12)
+#define EFI_MEDIA_CHANGED               EFI_ERROR(13)
+#define EFI_NOT_FOUND                   EFI_ERROR(14)
+#define EFI_ACCESS_DENIED               EFI_ERROR(15)
+#define EFI_NO_RESPONSE                 EFI_ERROR(16)
+#define EFI_NO_MAPPING                  EFI_ERROR(17)
+#define EFI_TIMEOUT                     EFI_ERROR(18)
+#define EFI_NOT_STARTED                 EFI_ERROR(19)
+#define EFI_ALREADY_STARTED             EFI_ERROR(20)
+#define EFI_ABORTED                     EFI_ERROR(21)
+#define EFI_ICMP_ERROR                  EFI_ERROR(22)
+#define EFI_TFTP_ERROR                  EFI_ERROR(23)
+#define EFI_PROTOCOL_ERROR              EFI_ERROR(24)
+#define EFI_INCOMPATIBLE_VERSION        EFI_ERROR(25)
+#define EFI_SECURITY_VIOLATION          EFI_ERROR(26)
+#define EFI_CRC_ERROR                   EFI_ERROR(27)
+#define EFI_END_OF_MEDIA                EFI_ERROR(28)
+#define EFI_END_OF_FILE                 EFI_ERROR(31)
+#define EFI_INVALID_LANGUAGE            EFI_ERROR(32)
+#define EFI_COMPROMISED_DATA            EFI_ERROR(33)
+#define EFI_IP_ADDRESS_CONFLICT         EFI_ERROR(34)
+#define EFI_HTTP_ERROR                  EFI_ERROR(35)
+
+
+/// @brief EFI WARN CODE
+#define EFI_WARN(a)                             (a)
+#define EFI_WARN_UNKOWN_GLYPH           EFI_WARN(1)
+#define EFI_WARN_UNKNOWN_GLYPH          EFI_WARN(1)
+#define EFI_WARN_DELETE_FAILURE         EFI_WARN(2)
+#define EFI_WARN_WRITE_FAILURE          EFI_WARN(3)
+#define EFI_WARN_BUFFER_TOO_SMALL       EFI_WARN(4)
+#define EFI_WARN_STALE_DATA             EFI_WARN(5)
+#define EFI_WARN_FILE_SYSTEM            EFI_WARN(6)
+#define EFI_WARN_RESET_REQUIRED         EFI_WARN(7)
+
+
+/// @brief EFI_UNUSED
+#define EFI_UNUSED                      __attribute__((__unused__))
+
+
+/************************* EFI_TABLE_HEADER **************************/
+
+/// @brief EFI_TABLE_HEADER
 typedef struct {
-	uint64_t   signature;
-	uint32_t   revision;
-	uint32_t   headerSize;
-	uint32_t   crc32;
-	uint32_t   reserved;
-} EFITableHeader;
+	UINT64   Signature;
+	UINT32   Revision;
+	UINT32   HeaderSize;
+	UINT32   CRC32;
+	UINT32   Reserved;
+} EFI_TABLE_HEADER;
 
 
-/// @brief EFIInputKey
+/******************** EFI_SIMPLE_TEXT_INPUT_PROTOCOL *****************/
+
+/// @brief Declaration structure
+typedef struct _EFI_SIMPLE_TEXT_INPUT_PROTOCOL EFI_SIMPLE_TEXT_INPUT_PROTOCOL;
+
+
+/// @brief EFI_INPUT_KEY
 typedef struct {
-	uint16_t    scanCode;
-	wchar_t     unicodeChar;
-} EFIInputKey;
+	UINT16                             ScanCode;
+	CHAR16                             UnicodeChar;
+} EFI_INPUT_KEY;
 
 
-/// @brief EFIInputReset
-typedef EFIStatus (*EFIInputReset) (
-	IN struct _SimpleTextInputInterface *this, 
-	IN bool extendedVerification
+/// @brief EFI_INPUT_RESET
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_INPUT_RESET) (
+	IN EFI_SIMPLE_TEXT_INPUT_PROTOCOL  *This, 
+	IN BOOLEAN                         ExtendedVerification
 );
 
 
-/// @brief EFIInputReadKey
-typedef EFIStatus (*EFIInputReadKey) (
-	IN struct _SimpleTextInputInterface *this,
-	OUT EFIInputKey *key
+/// @brief EFI_INPUT_READ_KEY
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_INPUT_READ_KEY) (
+	IN  EFI_SIMPLE_TEXT_INPUT_PROTOCOL *This,
+	OUT EFI_INPUT_KEY                  *Key
 );
 
 
-/// @brief SimpleTextInputInterface
-typedef struct _SimpleTextInputInterface {
-	EFIInputReset        reset;
-	EFIInputReadKey      readKeyStroke;
-	EFIEvent             waitForKey;
-} SimpleTextInputInterface, EFISimpleTextInProtocol;
+/// @brief EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID
+#define EFI_SIMPLE_TEXT_INPUT_PROTOCOL_GUID \
+{0x387477c1,0x69c7,0x11d2,{0x8e,0x39,0x00,0xa0,0xc9,0x69,0x72,0x3b}}
 
 
-/// @brief EFITextReset
-typedef EFIStatus (*EFITextReset) (
-	IN struct _SimpleTextOutputINterface *this,
-	IN bool extendedVerification
+/// @brief EFI_SIMPLE_TEXT_INPUT_PROTOCOL
+typedef struct _EFI_SIMPLE_TEXT_INPUT_PROTOCOL {
+	EFI_INPUT_RESET                    Reset;
+	EFI_INPUT_READ_KEY                 ReadKeyStroke;
+	EFI_EVENT                          WaitForKey;
+} EFI_SIMPLE_TEXT_INPUT_PROTOCOL;
+
+
+/******************* EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *****************/
+
+/// @brief Declaration structure
+typedef struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
+
+
+/// @brief EFI_TEXT_RESET
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_TEXT_RESET) (
+	IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
+	IN BOOLEAN                         ExtendedVerification
 );
 
 
-/// @brief EFITextOutputString
-typedef EFIStatus (*EFITextOutputString) (
-	IN struct _SimpleTextOutputInterface *this,
-	IN wchar_t *string
+/// @brief EFI_TEXT_OUTPUT_STRING
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_TEXT_OUTPUT_STRING) (
+	IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
+	IN CHAR16                          *String
 );
 
 
-/// @brief EFITextTestString
-typedef EFIStatus (*EFITextTestString) (
-	IN struct _SimpleTextOutputInterface *this,
-	IN wchar_t *string
+/// @brief EFI_TEXT_TEST_STRING
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_TEXT_TEST_STRING) (
+	IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
+	IN CHAR16                          *String
 );
 
 
-/// @brief EFITextQueryMode
-typedef EFIStatus (*EFITextQueryMode) (
-	IN struct _SimpleTextOutputInterface *this,
-	IN uintn_t modeNumber,
-	OUT uintn_t *columns,
-	OUT uintn_t *rows
+/// @brief EFI_TEXT_QUERY_MODE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_TEXT_QUERY_MODE) (
+	IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
+	IN UINTN                           ModeNumber,
+	OUT UINTN                          *Columns,
+	OUT UINTN                          *Rows
 );
 
 
-/// @brief EFITextSetMode
-typedef EFIStatus (*EFITextSetMode) (
-	IN struct _SimpleTextOutputInterface *this,
-	IN uintn_t modeNumber
+/// @brief EFI_TEXT_SET_MODE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_TEXT_SET_MODE) (
+	IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
+	IN UINTN                           ModeNumber
 );
 
 
-/// @brief EFITextSetAttribute
-typedef EFIStatus (*EFITextSetAttribute) (
-	IN struct _SimpleTextOutputInterface *this,
-	IN uintn_t attribute
+/// @brief EFI_TEXT_SET_ATTRIBUTE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_TEXT_SET_ATTRIBUTE) (
+	IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
+	IN UINTN                           Attribute
 );
 
 
-/// @brief EFITextClearScreen
-typedef EFIStatus (*EFITextClearScreen) (
-	IN struct _SimpleTextOutputInterface *this
+/// @brief EFI_TEXT_CLEAR_SCREEN
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_TEXT_CLEAR_SCREEN) (
+	IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This
 );
 
 
-/// @brief EFITextSetCursorPosition
-typedef EFIStatus (*EFITextSetCursorPosition) (
-	IN struct _SimpleTextOutputInterface *this,
-	IN uintn_t column,
-	IN uintn_t row
+/// @brief EFI_TEXT_SET_CURSOR_POSITION
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_TEXT_SET_CURSOR_POSITION) (
+	IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
+	IN UINTN                           Column,
+	IN UINTN                           Row
 );
 
 
-/// @brief EFITextEnableCursor
-typedef EFIStatus (*EFITextEnableCursor) (
-	IN struct _SimpleTextOutputInterface *this,
-	IN bool enable
+/// @brief EFI_TEXT_ENABLE_CURSOR
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_TEXT_ENABLE_CURSOR) (
+	IN EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This,
+	IN BOOLEAN                         Enable
 );
 
 
-/// @brief SimpleTextOutputMode
+/// @brief SIMPLE_TEXT_OUTPUT_MODE
 typedef struct {
-	int32_t    maxMode;
+	INT32                              MaxMode;
 	//Current settings
-	int32_t    mode;
-	int32_t    attribute;
-	int32_t    cursorColumn;
-	int32_t    cursorRow;
-	bool       cursorVisible;
-} SimpleTextOutputMode;
+	INT32                              Mode;
+	INT32                              Attribute;
+	INT32                              CursorColumn;
+	INT32                              CursorRow;
+	BOOLEAN                            CursorVisible;
+} SIMPLE_TEXT_OUTPUT_MODE;
 
 
-/// @brief SimpleTextOutputInterface
-typedef struct _SimpleTextOutputInterface {
-	EFITextReset             reset;
-
-	EFITextOutputString      outputString;
-	EFITextTestString        testString;
-
-	EFITextQueryMode         queryMode;
-	EFITextSetMode           setMode;
-	EFITextSetAttribute      setAttribute;
-
-	EFITextClearScreen       clearScreen;
-	EFITextSetCursorPosition setCursorPosition;
-	EFITextEnableCursor      enableCursor;
-
-	//Current mode
-	SimpleTextOutputMode     *mode;
-} SimpleTextOutputInterface, EFISimpleTextOutProtocol;
+/// @brief EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID
+#define EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL_GUID \
+{0x387477c2,0x69c7,0x11d2,{0x8e,0x39,0x00,0xa0,0xc9,0x69,0x72,0x3b}}
 
 
-/// @brief EFITime
+/// @brief EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL
+typedef struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL {
+	EFI_TEXT_RESET                     Reset;
+
+	EFI_TEXT_OUTPUT_STRING             OutputString;
+	EFI_TEXT_TEST_STRING               TestString;
+
+	EFI_TEXT_QUERY_MODE                QueryMode;
+	EFI_TEXT_SET_MODE                  SetMode;
+	EFI_TEXT_SET_ATTRIBUTE             SetAttribute;
+
+	EFI_TEXT_CLEAR_SCREEN              ClearScreen;
+	EFI_TEXT_SET_CURSOR_POSITION       SetCursorPosition;
+	EFI_TEXT_ENABLE_CURSOR             EnableCursor;
+
+	//Current mode      
+	SIMPLE_TEXT_OUTPUT_MODE            *Mode;
+} EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL;
+
+
+/************************* EFI_BOOT_SERVICES ***********************/
+
+/// @brief EFI_TIME
 typedef struct {
-	uint16_t   year;
-	uint8_t    month;
-	uint8_t    day;
-	uint8_t    hour;
-	uint8_t    minute;
-	uint8_t    second;
-	uint8_t    pad1;
-	uint32_t   nanosecond;
-	int16_t    timeZone;
-	uint8_t    dayLight;
-	uint8_t    pad2;
-} EFITime;
+	UINT16                             Year;
+	UINT8                              Month;
+	UINT8                              Day;
+	UINT8                              Hour;
+	UINT8                              Minute;
+	UINT8                              Second;
+	UINT8                              Pad1;
+	UINT32                             Nanosecond;
+	INT16                              TimeZone;
+	UINT8                              DayLight;
+	UINT8                              Pad2;
+} EFI_TIME;
 
 
-/// @brief EFITimeCapabilities
+/// @brief EFI_TIME_CAPABILITIES
 typedef struct {
-	uint32_t resolution;
-	uint32_t accuraccy;
-	bool     setsToZero;
-} EFITimeCapabilities;
+	UINT32                             Resolution;
+	UINT32                             Accuraccy;
+	BOOLEAN                            SetsToZero;
+} EFI_TIME_CAPABILITIES;
 
 
-/// @brief EFIGetTime
-typedef EFIStatus (*EFIGetTime) (
-	OUT EFITime *time,
-	OUT EFITimeCapabilities *capabilities OPTIONAL
+/// @brief EFI_GET_TIME
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_GET_TIME) (
+	OUT EFI_TIME                       *Time,
+	OUT EFI_TIME_CAPABILITIES          *Capabilities OPTIONAL
 );
 
 
-/// @brief EFISetTime
-typedef EFIStatus (*EFISetTime) (
-	IN EFITime *time
+/// @brief EFI_SET_TIME
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_SET_TIME) (
+	IN EFI_TIME                        *Time
 );
 
 
-/// @brief EFIGetWakeupTime
-typedef EFIStatus (*EFIGetWakeupTime) (
-	OUT bool *enabled,
-	OUT bool *pending,
-	OUT bool *time
+/// @brief EFI_GET_WAKEUP_TIME
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_GET_WAKEUP_TIME) (
+	OUT BOOLEAN                        *Enabled,
+	OUT BOOLEAN                        *Pending,
+	OUT BOOLEAN                        *Time
 );
 
 
-/// @brief EFISetWakeupTime
-typedef EFIStatus (*EFISetWakeupTime) (
-	IN bool enabled,
-	IN bool *time OPTIONAL
+/// @brief EFI_SET_WAKEUP_TIME
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_SET_WAKEUP_TIME) (
+	IN BOOLEAN                         Enabled,
+	IN BOOLEAN                         *Time OPTIONAL
 );
 
 
-/// @brief EFIMemoryDescriptor
+/// @brief EFI_MEMORY_DESCRIPTOR
 typedef struct {
-	uint32_t   type;
-	uint32_t   pad;
-	uint64_t   physiccalStart;
-	uint64_t   virtualStart;
-	uint64_t   numberOfPages;
-	uint64_t   attribute;
-} EFIMemoryDescriptor;
+	UINT32                             Type;
+	UINT32                             Pad;
+	UINT64                             PhysiccalStart;
+	UINT64                             VirtualStart;
+	UINT64                             NumberOfPages;
+	UINT64                             Attribute;
+} EFI_MEMORY_DESCRIPTOR;
 
 
-/// @brief EFIGuid
-typedef struct {
-	uint32_t  data1;
-	uint32_t  data2;
-	uint32_t  data3;
-	uint8_t   data4[8];
-} EFIGuid;
-
-
-/// @brief EFISetVirtualAddressMap
-typedef EFIStatus (*EFISetVirtualAddressMap) (
-	IN uintn_t memoryMapSize,
-	IN uintn_t descriptorSize,
-	IN uint32_t descriptorVersion, 
-	IN EFIMemoryDescriptor *virtualMap
+/// @brief EFI_SET_VIRTUAL_ADDRESS_MAP
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_SET_VIRTUAL_ADDRESS_MAP) (
+	IN UINTN                           MemoryMapSize,
+	IN UINTN                           DescriptorSize,
+	IN UINT32                          DescriptorVersion, 
+	IN EFI_MEMORY_DESCRIPTOR           *VirtualMap
 );
 
 
-/// @brief EFIConvertPointer
-typedef EFIStatus (*EFIConvertPointer) (
-	IN uintn_t debugDisposition, 
-	IN OUT void **address
+/// @brief EFI_CONVERT_POINTER
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_CONVERT_POINTER) (
+	IN UINTN                           DebugDisposition, 
+	IN OUT VOID                        **Address
 );
 
 
-/// @brief EFIGetVariable
-typedef EFIStatus (*EFIGetVariable) (
-	IN wchar_t *variableName,
-	IN EFIGuid *vendorGuid,
-	OUT uint32_t *attributes, OPTIONAL
-	IN OUT uintn_t *dataSize,
-	OUT void* data
+/// @brief EFI_GET_VARIABLE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_GET_VARIABLE) (
+	IN CHAR16                          *VariableName,
+	IN EFI_GUID                        *VendorGuid,
+	OUT UINT32                         *Attributes OPTIONAL,
+	IN OUT UINTN                       *DataSize,
+	OUT VOID                           *Data
 );
 
 
-/// @brief EFIGetNextVariableName
-typedef EFIStatus (*EFIGetNextVariableName) (
-	IN OUT uintn_t *variableNameSize, 
-	IN OUT wchar_t *variableName,
-	IN OUT EFIGuid *vendorGuid
+/// @brief EFI_GET_NEXT_VARIABLE_NAME
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_GET_NEXT_VARIABLE_NAME) (
+	IN OUT UINTN                       *VariableNameSize, 
+	IN OUT CHAR16                      *VariableName,
+	IN OUT EFI_GUID                    *VendorGuid
 );
 
 
-/// @brief EFISetVariable
-typedef EFIStatus (*EFISetVariable) (
-	IN wchar_t *variableName,
-	IN EFIGuid *vendorGuid,
-	IN uint32_t attributes,
-	IN uintn_t dataSize,
-	IN void* data
+/// @brief EFI_SET_VARIABLE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_SET_VARIABLE) (
+	IN CHAR16                          *VariableName,
+	IN EFI_GUID                        *VendorGuid,
+	IN UINT32                          Attributes,
+	IN UINTN                           DataSize,
+	IN VOID                            *Data
 );
 
 
-/// @brief EFIGetNextHighMonoCount
-typedef EFIStatus (*EFIGetNextHighMonoCount) (
-	OUT uint32_t *highCount
+/// @brief EFI_GET_NEXT_HIGHMONO_COUNT
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_GET_NEXT_HIGHMONO_COUNT) (
+	OUT UINT32                         *HighCount
 );
 
 
-/// @brief EFIResetType
+/// @brief EFI_RESET_TYPE
 typedef enum {
-	_EfiResetCold,
-	_EfiResetWarm,
-	_EfiResetShutdown
-} EFIResetType;
+	EfiResetCold,
+	EfiResetWarm,
+	EfiResetShutdown
+} EFI_RESET_TYPE;
 
 
-/// @brief EFICapsuleHeader
+/// @brief EFI_CAPSULE_HEADER
 typedef struct {
-	EFIGuid   capsuleGuid;
-	uint32_t  headerSize;
-	uint32_t  flags;
-	uint32_t  capsuleImageSize;
-} EFICapsuleHeader;
+	EFI_GUID                           CapsuleGuid;
+	UINT32                             HeaderSize;
+	UINT32                             Flags;
+	UINT32                             CapsuleImageSize;
+} EFI_CAPSULE_HEADER;
 
 
-/// @brief EFIResetSystem
-typedef EFIStatus (*EFIResetSystem) (
-	IN EFIResetType resetType, 
-	IN EFIStatus resetStatus, 
-	IN uintn_t dataSize, 
-	IN wchar_t *resetData
+/// @brief EFI_RESET_SYSTEM
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_RESET_SYSTEM) (
+	IN EFI_RESET_TYPE                  ResetType, 
+	IN EFI_STATUS                      ResetStatus, 
+	IN UINTN                           DataSize, 
+	IN CHAR16                          *ResetData
 );
 
 
-/// @brief EFIUpdateCapsule
-typedef EFIStatus (*EFIUpdateCapsule) (
-	IN EFICapsuleHeader **capsuleHeaderArray,
-	IN uintn_t capsuleCount,
-	IN uint64_t scatterGatherList OPTIONAL
+/// @brief EFI_UPDATE_CAPSULE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_UPDATE_CAPSULE) (
+	IN EFI_CAPSULE_HEADER              **CapsuleHeaderArray,
+	IN UINTN                           CapsuleCount,
+	IN UINT64                          ScatterGatherList OPTIONAL
 );
 
 
-/// @brief EFIQueryCapsuleCapabilities
-typedef EFIStatus (*EFIQueryCapsuleCapabilities) (
-	IN EFICapsuleHeader **capsuleHeaderArray,
-	IN uintn_t capsuleCount,
-	OUT uint64_t *maximumCapsuleSize,
-	OUT EFIResetType *resetType
+/// @brief EFI_QUERY_CAPSULE_CAPABILITIES
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_QUERY_CAPSULE_CAPABILITIES) (
+	IN EFI_CAPSULE_HEADER              **CapsuleHeaderArray,
+	IN UINTN                           CapsuleCount,
+	OUT UINT64                         *MaximumCapsuleSize,
+	OUT EFI_RESET_TYPE                 *ResetType
 );
 
 
-/// @brief EFIQueryVariableInfo
-typedef EFIStatus (*EFIQueryVariableInfo) (
-	IN uint32_t attributes,
-	OUT uint64_t *maximumVariableStorageSize,
-	OUT uint64_t *remainingVariableStorageSize,
-	OUT uint64_t *maximumVariableSize
+/// @brief EFI_QUERY_VARIABLE_INFO
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_QUERY_VARIABLE_INFO) (
+	IN UINT32                          Attributes,
+	OUT UINT64                         *MaximumVariableStorageSize,
+	OUT UINT64                         *RemainingVariableStorageSize,
+	OUT UINT64                         *MaximumVariableSize
 );
 
 
-/// @brief EFIRuntimeServices
+/// @brief EFI_RUNTIME_SERVICES Defines
+#define EFI_RUNTIME_SERVICES_SIGNATURE 0x56524553544e5552
+#define EFI_RUNTIME_SERVICES_REVISION EFI_SPECIFICATION_VERSION
+
+
+/// @brief EFI_RUNTIME_SERVICES
 typedef struct {
-	EFITableHeader                 header;
+	EFI_TABLE_HEADER                   Hdr;
 
-	//Time services
-	EFIGetTime                     GetTime;
-	EFISetTime                     SetTime;
-	EFIGetWakeupTime               GetWakeupTime;
-	EFISetWakeupTime               SetWakeupTime;
+	//
+	// Time Services
+	//
+	EFI_GET_TIME                       GetTime;
+	EFI_SET_TIME                       SetTime;
+	EFI_GET_WAKEUP_TIME                GetWakeupTime;
+	EFI_SET_WAKEUP_TIME                SetWakeupTime;
 
-	//virtual memory services
-	EFISetVirtualAddressMap        SetVirtualAdderssMap;
-	EFIConvertPointer              ConvertPointer;
+	//
+	// Virtual Memory Services
+	//
+	EFI_SET_VIRTUAL_ADDRESS_MAP        SetVirtualAdderssMap;
+	EFI_CONVERT_POINTER                ConvertPointer;
 
-	//Variable services
-	EFIGetVariable                 GetVariable;
-	EFIGetNextVariableName         GetNextVariableName;
-	EFISetVariable                 SetVariable;
+	//
+	// Variable Services
+	//
+	EFI_GET_VARIABLE                   GetVariable;
+	EFI_GET_NEXT_VARIABLE_NAME         GetNextVariableName;
+	EFI_SET_VARIABLE                   SetVariable;
 
-	//Misc
-	EFIGetNextHighMonoCount        GetNextHighMonotonicCount;
-	EFIResetSystem                 ResetSystem;
+	//
+	// Miscellaneous Services
+	//
+	EFI_GET_NEXT_HIGHMONO_COUNT        GetNextHighMonotonicCount;
+	EFI_RESET_SYSTEM                   ResetSystem;
 
-	EFIUpdateCapsule               UpdateCapsule;
-	EFIQueryCapsuleCapabilities    QueryCapsuleCapabilities;
-	EFIQueryVariableInfo           QueryVariableInfo;
-} EFIRuntimeServices;
+	//
+	// UEFI 2.0 Capsule Services
+	//
+	EFI_UPDATE_CAPSULE                 UpdateCapsule;
+	EFI_QUERY_CAPSULE_CAPABILITIES     QueryCapsuleCapabilities;
+
+	//
+	// Miscellaneous UEFI 2.0 Service
+	//
+	EFI_QUERY_VARIABLE_INFO            QueryVariableInfo;
+} EFI_RUNTIME_SERVICES;
 
 
-/// @brief EFIRaiseTPL
-typedef EFIStatus (*EFIRaiseTPL) (
-	IN EFITPL newTPL
+/********************** EFI_RUNTIME_SERVICES **********************/
+
+/// @brief EFI_RAISE_TPL
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_RAISE_TPL) (
+	IN EFI_TPL                         NewTPL
 );
 
 
-/// @brief EFIRestoreTPL
-typedef EFIStatus (*EFIRestoreTPL) (
-	IN EFITPL oldTPL
+/// @brief EFI_RESTORE_TPL
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_RESTORE_TPL) (
+	IN EFI_TPL                         OldTPL
 );
 
 
-/// @brief EFIAllocateType
+/// @brief EFI_ALLOCATE_TYPE
 typedef enum {
-	_AllocateAnyPages,
-	_AllocateMaxAddress,
-	_AllocateAddress
-} EFIAllocateType;
+	AllocateAnyPages,
+	AllocateMaxAddress,
+	AllocateAddress
+} EFI_ALLOCATE_TYPE;
 
 
-/// @brief EFIMemoryType
+/// @brief EFI_MEMORY_TYPE
 typedef enum {
-    _EfiReservedMemoryType,
-    _EfiLoaderCode,
-    _EfiLoaderData,
-    _EfiBootServicesCode,
-    _EfiBootServicesData,
-    _EfiRuntimeServicesCode,
-    _EfiRuntimeServicesData,
-    _EfiConventionalMemory,
-    _EfiUnusableMemory,
-    _EfiACPIReclaimMemory,
-    _EfiACPIMemoryNVS,
-    _EfiMemoryMappedIO,
-    _EfiMemoryMappedIOPortSpace,
-    _EfiPalCode,
-    _EfiPersistentMemory,
-    _EfiUnacceptedMemoryType,
-    _EfiMaxMemoryType
-} EFIMemoryType;
+    EfiReservedMemoryType,
+    EfiLoaderCode,
+    EfiLoaderData,
+    EfiBootServicesCode,
+    EfiBootServicesData,
+    EfiRuntimeServicesCode,
+    EfiRuntimeServicesData,
+    EfiConventionalMemory,
+    EfiUnusableMemory,
+    EfiACPIReclaimMemory,
+    EfiACPIMemoryNVS,
+    EfiMemoryMappedIO,
+    EfiMemoryMappedIOPortSpace,
+    EfiPalCode,
+    EfiPersistentMemory,
+    EfiUnacceptedMemoryType,
+    EfiMaxMemoryType
+} EFI_MEMORY_TYPE;
 
 
-/// @brief EFIAllocatePages
-typedef EFIStatus (*EFIAllocatePages) (
-	IN EFIAllocateType type,
-	IN EFIMemoryType memoryType,
-	IN uintn_t noPages,
-	OUT uint64_t *memory
+/// @brief EFI_ALLOCATE_PAGES
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_ALLOCATE_PAGES) (
+	IN EFI_ALLOCATE_TYPE               Type,
+	IN EFI_MEMORY_TYPE                 MemoryType,
+	IN UINTN                           NoPages,
+	OUT UINT64                         *Memory
 );
 
 
-/// @brief EFIFreePages
-typedef EFIStatus (*EFIFreePages) (
-	IN uint64_t memory,
-	IN uintn_t noPages
+/// @brief EFI_FREE_PAGES
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_FREE_PAGES) (
+	IN UINT64                          Memory,
+	IN UINTN                           NoPages
 );
 
 
-/// @brief EFIGetMemoryMap
-typedef EFIStatus (*EFIGetMemoryMap) (
-	IN OUT uintn_t *memoryMapSize,
-	IN OUT EFIMemoryDescriptor *memoryMap,
-	OUT uintn_t *mapKey,
-	OUT uintn_t *descriptorSize,
-	OUT uint32_t *descriptorVersion
+/// @brief EFI_GET_MEMORY_MAP
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_GET_MEMORY_MAP) (
+	IN OUT UINTN                       *MemoryMapSize,
+	IN OUT EFI_MEMORY_DESCRIPTOR       *MemoryMap,
+	OUT UINTN                          *MapKey,
+	OUT UINTN                          *DescriptorSize,
+	OUT UINT32                         *DescriptorVersion
 );
 
 
-/// @brief EFIAllocatePool
-typedef EFIStatus (*EFIAllocatePool) (
-	IN EFIMemoryType poolType,
-	IN uintn_t size,
-	OUT void **buffer
+/// @brief EFI_ALLOCATE_POOL
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_ALLOCATE_POOL) (
+	IN EFI_MEMORY_TYPE                 PoolType,
+	IN UINTN                           Size,
+	OUT VOID                           **Buffer
 );
 
 
-/// @brief EFIFreePool
-typedef EFIStatus (*EFIFreePool) (
-	IN void *buffer
+/// @brief EFI_FREE_POOL
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_FREE_POOL) (
+	IN void                            *Buffer
 );
 
 
-/// @brief EFIEventNotify
-typedef void (*EFIEventNotify) (
-	IN EFIEvent event,
-	IN void *context
+/// @brief EFI_EVENT_NOTIFY
+typedef 
+VOID 
+(EFIAPI *EFI_EVENT_NOTIFY) (
+	IN EFI_EVENT                       Event,
+	IN VOID                            *Context
 );
 
 
-/// @brief EFICreateEvent
-typedef EFIStatus (*EFICreateEvent) (
-	IN uint32_t type,
-	IN EFITPL notifyTPL,
-	IN EFIEventNotify notifyFunction,
-	IN void *notifyContext,
-	OUT EFIEvent *event
+/// @brief EFI_CREATE_EVENT
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_CREATE_EVENT) (
+	IN UINT32                          Type,
+	IN EFI_TPL                         NotifyTPL,
+	IN EFI_EVENT_NOTIFY                NotifyFunction,
+	IN VOID                            *NotifyContext,
+	OUT EFI_EVENT                      *Event
 );
 
 
-/// @brief EFITimerDelay
+/// @brief EFI_TIMER_DELAY
 typedef enum {
-    _TimerCancel,
-    _TimerPeriodic,
-    _TimerRelative,
-    _TimerTypeMax
-} EFITimerDelay;
+    TimerCancel,
+    TimerPeriodic,
+    TimerRelative,
+    TimerTypeMax
+} EFI_TIMER_DELAY;
 
 
-/// @brief EFISetTimer
-typedef EFIStatus (*EFISetTimer) (
-	IN EFIEvent event,
-	IN EFITimerDelay type,
-	IN uint64_t triggerTime
+/// @brief EFI_SET_TIMER
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_SET_TIMER) (
+	IN EFI_EVENT                       Event,
+	IN EFI_TIMER_DELAY                 Type,
+	IN UINT64                          TriggerTime
 );
 
 
-/// @brief EFIWaitForEvent
-typedef EFIStatus (*EFIWaitForEvent) (
-	IN uintn_t numberOfEvents,
-	IN EFIEvent *event,
-	OUT uintn_t *index
+/// @brief EFI_WAIT_FOR_EVENT
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_WAIT_FOR_EVENT) (
+	IN UINTN                           NumberOfEvents,
+	IN EFI_EVENT                       *Event,
+	OUT UINTN                          *Index
 );
 
 
-/// @brief EFISignalEvent
-typedef EFIStatus (*EFISignalEvent) (
-	IN EFIEvent event
+/// @brief EFI_SIGNAL_EVENT
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_SIGNAL_EVENT) (
+	IN EFI_EVENT                       Event
 );
 
 
-/// @brief EFICloseEvent
-typedef EFIStatus (*EFICloseEvent) (
-	IN EFIEvent event
+/// @brief EFI_CLOSE_EVENT
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_CLOSE_EVENT) (
+	IN EFI_EVENT                       Event
 );
 
 
-/// @brief EFICheckEvent
-typedef EFIStatus (*EFICheckEvent) (
-	IN EFIEvent event
+/// @brief EFI_CHECK_EVENT
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_CHECK_EVENT) (
+	IN EFI_EVENT                       Event
 );
 
 
-/// @brief EFIInterfaceType
+/// @brief EFI_INTERFACE_TYPE
 typedef enum {
-	_EFINativeInterface,
-	_EFIPcodeInterface
-} EFIInterfaceType;
+	EFINativeInterface,
+	EFIPcodeInterface
+} EFI_INTERFACE_TYPE;
 
 
-/// @brief EFILocateSearchType
+/// @brief EFI_LOCATE_SEARCH_TYPE
 typedef enum {
-    _AllHandles,
-    _ByRegisterNotify,
-    _ByProtocol
-} EFILocateSearchType;
+    AllHandles,
+    ByRegisterNotify,
+    ByProtocol
+} EFI_LOCATE_SEARCH_TYPE;
 
 
-/// @brief EFIDevicePath
+/// @brief EFI_DEVICE_PATH
 typedef struct {
-	uint8_t type;
-	uint8_t subType;
-	uint8_t length[2];
-} EFIDevicePath;
+	UINT8 type;
+	UINT8 subType;
+	UINT8 length[2];
+} EFI_DEVICE_PATH;
 
 
-/// @brief EFIInstallProtocolInterface
-typedef EFIStatus (*EFIInstallProtocolInterface) (
-	IN OUT EFIHandle *handle,
-	IN EFIGuid *protoccol,
-	IN EFIInterfaceType interfaceType,
-	IN void *interface
+/// @brief EFI_INSTALL_PROTOCOL_INTERFACE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_INSTALL_PROTOCOL_INTERFACE) (
+	IN OUT EFI_HANDLE                  *Handle,
+	IN EFI_GUID                        *Protoccol,
+	IN EFI_INTERFACE_TYPE              InterfaceType,
+	IN VOID                            *Interface
 );
 
 
-/// @brief EFIReinstallProtocolInterface
-typedef EFIStatus (*EFIReinstallProtocolInterface) (
-	IN EFIHandle handle,
-	IN EFIGuid *protocol,
-	IN void *oldInterface,
-	IN void *newInterface
+/// @brief EFI_REINSTALL_PROTOCOL_INTERFACE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_REINSTALL_PROTOCOL_INTERFACE) (
+	IN EFI_HANDLE                      Handle,
+	IN EFI_GUID                        *Protocol,
+	IN VOID                            *OldInterface,
+	IN VOID                            *NewInterface
 );
 
 
-/// @brief EFIUninstallProtocolInterface
-typedef EFIStatus (*EFIUninstallProtocolInterface) (
-	IN EFIHandle handle,
-	IN EFIGuid *protocol,
-	IN void *interface
+/// @brief EFI_UNINSTALL_PROTOCOL_INTERFACE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_UNINSTALL_PROTOCOL_INTERFACE) (
+	IN EFI_HANDLE                      Handle,
+	IN EFI_GUID                        *Protocol,
+	IN VOID                            *Interface
 );
 
 
-/// @brief EFIHandleProtocol
-typedef EFIStatus (*EFIHandleProtocol) (
-	IN EFIHandle handle,
-	IN EFIGuid *protocol,
-	OUT void **interface
+/// @brief EFI_HANDLE_PROTOCOL
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_HANDLE_PROTOCOL) (
+	IN EFI_HANDLE                      Handle,
+	IN EFI_GUID                        *Protocol,
+	OUT VOID                           **Interface
 );
 
 
-/// @brief EFIRegisterProtocolNotify
-typedef EFIStatus (*EFIRegisterProtocolNotify) (
-	IN EFIGuid *protocol,
-	IN EFIEvent event,
-	OUT void **registration
+/// @brief EFI_REGISTER_PROTOCOL_NOTIFY
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_REGISTER_PROTOCOL_NOTIFY) (
+	IN EFI_GUID                        *Protocol,
+	IN EFI_EVENT                       Event,
+	OUT VOID                           **Registration
 );
 
 
-/// @brief EFILocateHandle
-typedef EFIStatus (*EFILocateHandle) (
-	IN EFILocateSearchType searchType,
-	IN EFIGuid *protocol,
-	IN void *searchKey,
-	IN OUT uintn_t *bufferSize,
-	OUT EFIHandle *buffer
+/// @brief EFI_LOCATE_HANDLE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_LOCATE_HANDLE) (
+	IN EFI_LOCATE_SEARCH_TYPE          SearchType,
+	IN EFI_GUID                        *Protocol,
+	IN VOID                            *SearchKey,
+	IN OUT UINTN                       *BufferSize,
+	OUT EFI_HANDLE                     *Buffer
 );
 
 
-/// @brief EFILocateDevicePath
-typedef EFIStatus (*EFILocateDevicePath) (
-	IN EFIGuid *protocol,
-	IN OUT EFIDevicePath **devicePath,
-	OUT EFIHandle *device
+/// @brief EFI_LOCATE_DEVICE_PATH
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_LOCATE_DEVICE_PATH) (
+	IN EFI_GUID                        *Protocol,
+	IN OUT EFI_DEVICE_PATH             **DevicePath,
+	OUT EFI_HANDLE                     *Device
 );
 
 
-/// @brief EFIInstallConfigurationTable
-typedef EFIStatus (*EFIInstallConfigurationTable) (
-	IN EFIGuid *guid,
-	IN void *table
+/// @brief EFI_INSTALL_CONFIGURATION_TABLE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_INSTALL_CONFIGURATION_TABLE) (
+	IN EFI_GUID                        *Guid,
+	IN VOID                            *Table
 );
 
 
-/// @brief EFIImageLoad
-typedef EFIStatus (*EFIImageLoad) (
-	IN bool bootPolicy,
-	IN EFIHandle parentImageHandle,
-	IN EFIDevicePath *filePath,
-	IN void *sourceBuffer, OPTIONAL
-	IN uintn_t sourceSize,
-	OUT EFIHandle *imageHandle
+/// @brief EFI_IMAGE_LOAD
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_IMAGE_LOAD) (
+	IN BOOLEAN                         BootPolicy,
+	IN EFI_HANDLE                      ParentImageHandle,
+	IN EFI_DEVICE_PATH                 *FilePath,
+	IN VOID                            *SourceBuffer OPTIONAL, 
+	IN UINTN                           SourceSize,
+	OUT EFI_HANDLE                     *ImageHandle
 );
 
 
-/// @brief EFIImageStart
-typedef EFIStatus (*EFIImageStart) (
-	IN EFIHandle imageHandle,
-	OUT uintn_t *exitDataSize,
-	OUT wchar_t **exitData OPTIONAL
+/// @brief EFI_IMAGE_START
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_IMAGE_START) (
+	IN EFI_HANDLE                      ImageHandle,
+	OUT UINTN                          *ExitDataSize,
+	OUT CHAR16                         **ExitData OPTIONAL
 );
 
 
-/// @brief EFIExit
-typedef EFIStatus (*EFIExit) (
-	IN EFIHandle imageHandle,
-	IN EFIStatus exitStatus,
-	IN uintn_t exitDataSize,
-	IN wchar_t *exitData OPTIONAL
+/// @brief EFI_EXIT
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_EXIT) (
+	IN EFI_HANDLE                      ImageHandle,
+	IN EFI_STATUS                      ExitStatus,
+	IN UINTN                           ExitDataSize,
+	IN CHAR16                          *ExitData OPTIONAL
 );
 
 
-/// @brief EFIImageUnload
-typedef EFIStatus (*EFIImageUnload) (
-	IN EFIHandle ImageHandle
+/// @brief EFI_IMAGE_UNLOAD
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_IMAGE_UNLOAD) (
+	IN EFI_HANDLE                      ImageHandle
 );
 
 
-/// @brief EFIExitBootServices
-typedef EFIStatus (*EFIExitBootServices) (
-	IN EFIHandle imageHandle,
-	IN uintn_t mapKey
+/// @brief EFI_EXIT_BOOT_SERVICES
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_EXIT_BOOT_SERVICES) (
+	IN EFI_HANDLE                      ImageHandle,
+	IN UINTN                           MapKey
 );
 
 
-/// @brief EFIGetNextMonotonicCount
-typedef EFIStatus (*EFIGetNextMonotonicCount) (
-	OUT uint64_t *count
+/// @brief EFI_GET_NEXT_MONOTONIC_COUNT
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_GET_NEXT_MONOTONIC_COUNT) (
+	OUT UINT64                         *Count
 );
 
 
-/// @brief EFIStall
-typedef EFIStatus (*EFIStall) (
-	IN uintn_t microseconds
+/// @brief EFI_STALL
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_STALL) (
+	IN UINTN                           Microseconds
 );
 
 
-/// @brief EFISetWatchdogTimer
-typedef EFIStatus (*EFISetWatchdogTimer) (
-	IN uintn_t timeout,
-	IN uint64_t watchdogCode,
-	IN uintn_t dataSize,
-	IN wchar_t *watchdogData OPTIONAL
+/// @brief EFI_SET_WATCHDOG_TIMER
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_SET_WATCHDOG_TIMER) (
+	IN UINTN                           Timeout,
+	IN UINT64                          WatchdogCode,
+	IN UINTN                           DataSize,
+	IN CHAR16                          *WatchdogData OPTIONAL
 );
 
 
-/// @brief EFIConnectController
-typedef EFIStatus (*EFIConnectController) (
-	IN EFIHandle controllerHandle,
-	IN EFIHandle *driverImageHandle, OPTIONAL
-	IN EFIDevicePath *remainingDevicePath, OPTIONAL
-	IN bool recursive
+/// @brief EFI_CONNECT_CONTROLLER
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_CONNECT_CONTROLLER) (
+	IN EFI_HANDLE                      ControllerHandle,
+	IN EFI_HANDLE                      *DriverImageHandle OPTIONAL, 
+	IN EFI_DEVICE_PATH                 *RemainingDevicePath OPTIONAL, 
+	IN BOOLEAN                         Recursive
 );
 
 
-/// @brief EFIDisconnectController
-typedef EFIStatus (*EFIDisconnectController) (
-	IN EFIHandle controllerHandle,
-	IN EFIHandle driverImageHandle, OPTIONAL
-	IN EFIHandle childHandle OPTIONAL
+/// @brief EFI_DISCONNECT_CONTROLLER
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_DISCONNECT_CONTROLLER) (
+	IN EFI_HANDLE                      ControllerHandle,
+	IN EFI_HANDLE                      DriverImageHandle OPTIONAL, 
+	IN EFI_HANDLE                      ChildHandle OPTIONAL
 );
 
 
-/// @brief EFIOpenProtocol
-typedef EFIStatus (*EFIOpenProtocol) (
-	IN EFIHandle handle,
-	IN EFIGuid *protocol,
-	OUT void **interface, OPTIONAL
-	IN EFIHandle agentHandle,
-	IN EFIHandle controllerHandle,
-	IN uint32_t attributes
+/// @brief EFI_OPEN_PROTOCOL
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_OPEN_PROTOCOL) (
+	IN EFI_HANDLE                      Handle,
+	IN EFI_GUID                        *Protocol,
+	OUT VOID                           **Interface OPTIONAL, 
+	IN EFI_HANDLE                      AgentHandle,
+	IN EFI_HANDLE                      ControllerHandle,
+	IN UINT32                          Attributes
 );
 
 
-/// @brief EFICloseProtocol
-typedef EFIStatus (*EFICloseProtocol) (
-	IN EFIHandle handle,
-	IN EFIGuid *protocol,
-	IN EFIHandle *agentHandle,
-	IN EFIHandle controllerHandle
+/// @brief EFI_CLOSE_PROTOCOL
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_CLOSE_PROTOCOL) (
+	IN EFI_HANDLE                      Handle,
+	IN EFI_GUID                        *Protocol,
+	IN EFI_HANDLE                      *AgentHandle,
+	IN EFI_HANDLE                      ControllerHandle
 );
 
 
-/// @brief EFIOpenProtocolInformationEntry
+/// @brief EFI_OPEN_PROTOCOL_INFORMATION_ENTRY
 typedef struct {
-	EFIHandle    agentHandle;
-	EFIHandle    controllerHandle;
-	uint32_t     attributes;
-	uint32_t     openCount;
-} EFIOpenProtocolInformationEntry;
+	EFI_HANDLE                         AgentHandle;
+	EFI_HANDLE                         ControllerHandle;
+	UINT32                             Attributes;
+	UINT32                             OpenCount;
+} EFI_OPEN_PROTOCOL_INFORMATION_ENTRY;
 
 
-/// @brief EFIOpenProtocolInformation
-typedef EFIStatus (*EFIOpenProtocolInformation) (
-	IN EFIHandle handle,
-	OUT EFIGuid *protocol,
-	OUT EFIOpenProtocolInformationEntry **entryBuffer,
-	OUT uintn_t *entryCount
+/// @brief EFI_OPEN_PROTOCOL_INFORMATION
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_OPEN_PROTOCOL_INFORMATION) (
+	IN EFI_HANDLE                            Handle,
+	OUT EFI_GUID                             *Protocol,
+	OUT EFI_OPEN_PROTOCOL_INFORMATION_ENTRY  **EntryBuffer,
+	OUT UINTN                                *EntryCount
 );
 
 
-/// @brief EFIProtocolsPerHandle
-typedef EFIStatus (*EFIProtocolsPerHandle) (
-	IN EFIHandle handle,
-	OUT EFIGuid ***protocolBuffer,
-	OUT uintn_t *protocolBufferCount
+/// @brief EFI_PROTOCOLS_PER_HANDLE
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_PROTOCOLS_PER_HANDLE) (
+	IN EFI_HANDLE                      Handle,
+	OUT EFI_GUID                       ***ProtocolBuffer,
+	OUT UINTN                          *ProtocolBufferCount
 );
 
 
-/// @brief EFILocateHandleBuffer
-typedef EFIStatus (*EFILocateHandleBuffer) (
-	IN EFILocateSearchType searchType,
-	IN EFIGuid *protoccol,
-	IN void *searchKey,
-	IN OUT uintn_t *noHndles,
-	OUT EFIHandle **buffer
+/// @brief EFI_LOCATE_HANDLE_BUFFER
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_LOCATE_HANDLE_BUFFER) (
+	IN EFI_LOCATE_SEARCH_TYPE          SearchType,
+	IN EFI_GUID                        *Protoccol,
+	IN VOID                            *SearchKey,
+	IN OUT UINTN                       *NoHndles,
+	OUT EFI_HANDLE                     **Buffer
 );
 
 
-/// @brief EFILocateProtocol
-typedef EFIStatus (*EFILocateProtocol) (
-	IN EFIGuid *protocol,
-	IN void *registration,
-	OUT void **interface
+/// @brief EFI_LOCATE_PROTOCOL
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_LOCATE_PROTOCOL) (
+	IN EFI_GUID                        *Protocol,
+	IN VOID                            *Registration,
+	OUT VOID                           **Interface
 );
 
 
-/// @brief EFIInstallMultipleProtocolInterfaces
-typedef EFIStatus (*EFIInstallMultipleProtocolInterfaces) (
-	IN OUT EFIHandle *handle,
+/// @brief EFI_INSTALL_MULTIPLE_PROTOCOL_INTERFACES
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_INSTALL_MULTIPLE_PROTOCOL_INTERFACES) (
+	IN OUT EFI_HANDLE                 *Handle,
 	...
 );
 
 
-/// @brief EFIUninstallMultipleProtocolInterfaces
-typedef EFIStatus (*EFIUninstallMultipleProtocolInterfaces) (
-	IN OUT EFIHandle handle,
+/// @brief EFI_UNINSTALL_MULTIPLE_PROTOCOL_INTERFACES
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_UNINSTALL_MULTIPLE_PROTOCOL_INTERFACES) (
+	IN OUT EFI_HANDLE                 Handle,
 	...
 );
 
 
-/// @brief EFICalculateCrc32
-typedef EFIStatus (*EFICalculateCrc32) (
-	IN void *data,
-	IN uintn_t dataSize,
-	OUT uint32_t *crc32
+/// @brief EFI_CALCULATE_CRC32
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_CALCULATE_CRC32) (
+	IN VOID                           *Data,
+	IN UINTN                          DataSize,
+	OUT UINT32                        *CRC32
 );
 
 
-/// @brief EFICopyMemory
-typedef void (*EFICopyMemory) (
-	IN void *destionation,
-	IN void *source,
-	IN uintn_t length
+/// @brief EFI_COPY_MEM
+typedef void (*EFI_COPY_MEM) (
+	IN VOID                           *Destionation,
+	IN VOID                           *Source,
+	IN UINTN                          Length
 );
 
 
-/// @brief EFISetMemory
-typedef void (*EFISetMemory) (
-	IN void *buffer,
-	IN uintn_t size,
-	IN uint8_t value
+/// @brief EFI_SET_MEM
+typedef void (*EFI_SET_MEM) (
+	IN VOID                           *Buffer,
+	IN UINTN                          Size,
+	IN UINT8                          Value
 );
 
 
-/// @brief EFICreateEventEx
-typedef EFIStatus (*EFICreateEventEx) (
-	IN uint32_t type,
-	IN EFITPL notifyTPL,
-	IN EFIEventNotify notifyFunction,
-	IN const void *notifyContext,
-	IN const EFIGuid *eventGroup,
-	OUT EFIEvent *event
+/// @brief EFI_CREATE_EVENT_EX
+typedef 
+EFI_STATUS 
+(EFIAPI *EFI_CREATE_EVENT_EX) (
+	IN UINT32                         Type,
+	IN EFI_TPL                        NotifyTPL,
+	IN EFI_EVENT_NOTIFY               NotifyFunction,
+	IN const VOID                     *NotifyContext,
+	IN const EFI_GUID                 *EventGroup,
+	OUT EFI_EVENT                     *Event
 );
 
 
 /// @brief EFIBootServices
 typedef struct {
-	EFITableHeader                 header;
+	EFI_TABLE_HEADER                  Hdr;
+	
+	//
+	// Task Priority Services
+	//
+	EFI_RAISE_TPL                     RaiseTPL;
+	EFI_RESTORE_TPL                   RestoreTPL;
 
-	//Task priority functions
-	EFIRaiseTPL                    RaiseTPL;
-	EFIRestoreTPL                  RestoreTPL;
+	//
+	// Memory Services
+	//
+	EFI_ALLOCATE_PAGES                AllocatePages;
+	EFI_FREE_PAGES                    FreePages;
+	EFI_GET_MEMORY_MAP                GetMemoryMap;
+	EFI_ALLOCATE_POOL                 AllocatePool;
+	EFI_FREE_POOL                     FreePool;
 
-	//Memory functions
-	EFIAllocatePages               AllocatePages;
-	EFIFreePages                   FreePages;
-	EFIGetMemoryMap                GetMemoryMap;
-	EFIAllocatePool                AllocatePool;
-	EFIFreePool                    FreePool;
+	//
+	// Event & Timer Services
+	//
+	EFI_CREATE_EVENT                  CreateEvent;
+	EFI_SET_TIMER                     SetTimer;
+	EFI_WAIT_FOR_EVENT                WaitForEvent;
+	EFI_SIGNAL_EVENT                  SignalEvent;
+	EFI_CLOSE_EVENT                   CloseEvent;
+	EFI_CHECK_EVENT                   CheckEvent;
 
-	//Event & timer functions
-	EFICreateEvent                 CreateEvent;
-	EFISetTimer                    SetTimer;
-	EFIWaitForEvent                WaitForEvent;
-	EFISignalEvent                 SignalEvent;
-	EFICloseEvent                  CloseEvent;
-	EFICheckEvent                  CheckEvent;
+	//
+	// Protocol Handler Services
+	//
+	EFI_INSTALL_PROTOCOL_INTERFACE    InstallProtocolInterface;
+	EFI_REINSTALL_PROTOCOL_INTERFACE  ReinstallProtocolInterface;
+	EFI_UNINSTALL_PROTOCOL_INTERFACE  UninstallProtocolInterface;
+	EFI_HANDLE_PROTOCOL               HandleProtocol;
+	EFI_HANDLE_PROTOCOL               PCHandleProtocol;
+	EFI_REGISTER_PROTOCOL_NOTIFY      RegisterProtocolNotify;
+	EFI_LOCATE_HANDLE                 LocateHandle;
+	EFI_LOCATE_DEVICE_PATH            LocateDevicePath;
+	EFI_INSTALL_CONFIGURATION_TABLE   InstallConfigurationTable;
 
-	//Protocol handler functions
-	EFIInstallProtocolInterface    InstallProtocolInterface;
-	EFIReinstallProtocolInterface  ReinstallProtocolInterface;
-	EFIUninstallProtocolInterface  UninstallProtocolInterface;
-	EFIHandleProtocol              HandleProtocol;
-	EFIHandleProtocol              PCHandleProtocol;
-	EFIRegisterProtocolNotify      RegisterProtocolNotify;
-	EFILocateHandle                LocateHandle;
-	EFILocateDevicePath            LocateDevicePath;
-	EFIInstallConfigurationTable   InstallConfigurationTable;
+	//
+	// Image Services
+	//
+	EFI_IMAGE_LOAD                    LoadImage;
+	EFI_IMAGE_START                   StartImage;
+	EFI_EXIT                          Exit;
+	EFI_IMAGE_UNLOAD                  UnloadImage;
+	EFI_EXIT_BOOT_SERVICES            ExitBootServices;
 
-	//Image functions
-	EFIImageLoad                   LoadImage;
-	EFIImageStart                  StartImageStartImage;
-	EFIExit                        Exit;
-	EFIImageUnload                 UnloadImage;
-	EFIExitBootServices            ExitBootServices;
+	//
+	// Miscellaneous Services
+	//
+	EFI_GET_NEXT_MONOTONIC_COUNT      GetNextMonotonicCount;
+	EFI_STALL                         Stall;
+	EFI_SET_WATCHDOG_TIMER            SetWatchdogTimer;
 
-	//Misc functions
-	EFIGetNextMonotonicCount       GetNextMonotonicCount;
-	EFIStall                       Stall;
-	EFISetWatchdogTimer            SetWatchdogTimer;
+	//
+	// DriverSupport Services
+	//
+	EFI_CONNECT_CONTROLLER            ConnectController;
+	EFI_DISCONNECT_CONTROLLER         DisconnectController;
 
-	//DriverSupport services
-	EFIConnectController           ConnectController;
-	EFIDisconnectController        DisconnectController;
+	//
+	// Open and Close Protocol Services
+	//
+	EFI_OPEN_PROTOCOL                 OpenProtocol;
+	EFI_CLOSE_PROTOCOL                CloseProtocol;
+	EFI_OPEN_PROTOCOL_INFORMATION     OpenProtocolInformation;
 
-	//Open and close protocol services
-	EFIOpenProtocol                OpenProtocol;
-	EFICloseProtocol               CloseProtocol;
-	EFIOpenProtocolInformation     OpenProtocolInformation;
+	//
+	// Library Services
+	//
+	EFI_PROTOCOLS_PER_HANDLE          ProtocolsPerHandle;
+	EFI_LOCATE_HANDLE_BUFFER          LocateHandleBuffer;
+	EFI_LOCATE_PROTOCOL               LocateProtocol;
+	EFI_INSTALL_MULTIPLE_PROTOCOL_INTERFACES   InstallMultipleProtocolInterfaces;
+	EFI_UNINSTALL_MULTIPLE_PROTOCOL_INTERFACES UninstallMultipleProtocolInterfaces;
 
-	//Library services
-	EFIProtocolsPerHandle          ProtocolsPerHandle;
-	EFILocateHandleBuffer          LocateHandleBuffer;
-	EFILocateProtocol              LocateProtocol;
-	EFIInstallMultipleProtocolInterfaces   InstallMultipleProtocolInterfaces;
-	EFIUninstallMultipleProtocolInterfaces UninstallMultipleProtocolInterfaces;
+	//
+	// 32-bit CRC Services
+	//
+	EFI_CALCULATE_CRC32               CalculateCrc32;
 
-	//32-bit CRC services
-	EFICalculateCrc32              CalculateCrc32;
-
-	//Misc services
-	EFICopyMemory                  CopyMemory;
-	EFISetMemory                   SetMemory;
-	EFICreateEventEx               CreateEventEx;
-} EFIBootServices;
+	//
+	// Miscellaneous Services
+	//
+	EFI_COPY_MEM                      CopyMem;
+	EFI_SET_MEM                       SetMem;
+	EFI_CREATE_EVENT_EX               CreateEventEx;
+} EFI_BOOT_SERVICES;
 
 
-/// @brief EFIConfigurationTable
+/********************** EFI_CONFIGURATION_TABLE **********************/
+
+
+/// @brief EFI_CONFIGURATION_TABLE
 typedef struct {
-	EFIGuid     vendorGuid;
-	void        *vendorTable;
-} EFIConfigurationTable;
+	EFI_GUID                          VendorGuid;
+	VOID                              *VendorTable;
+} EFI_CONFIGURATION_TABLE;
 
 
-/// @brief EFISystemTable
+/************************* EFI_SYSTEM_TABLE **************************/
+
+#define EFI_SYSTEM_TABLE_SIGNATURE 0x5453595320494249
+#define EFI_2_100_SYSTEM_TABLE_REVISION ((2<<16) | (100))
+#define EFI_2_90_SYSTEM_TABLE_REVISION  ((2<<16) | (90))
+#define EFI_2_80_SYSTEM_TABLE_REVISION  ((2<<16) | (80))
+#define EFI_2_70_SYSTEM_TABLE_REVISION  ((2<<16) | (70))
+#define EFI_2_60_SYSTEM_TABLE_REVISION  ((2<<16) | (60))
+#define EFI_2_50_SYSTEM_TABLE_REVISION  ((2<<16) | (50))
+#define EFI_2_40_SYSTEM_TABLE_REVISION  ((2<<16) | (40))
+#define EFI_2_31_SYSTEM_TABLE_REVISION  ((2<<16) | (31))
+#define EFI_2_30_SYSTEM_TABLE_REVISION  ((2<<16) | (30))
+#define EFI_2_20_SYSTEM_TABLE_REVISION  ((2<<16) | (20))
+#define EFI_2_10_SYSTEM_TABLE_REVISION  ((2<<16) | (10))
+#define EFI_2_00_SYSTEM_TABLE_REVISION  ((2<<16) | (00))
+#define EFI_1_10_SYSTEM_TABLE_REVISION  ((1<<16) | (10))
+#define EFI_1_02_SYSTEM_TABLE_REVISION  ((1<<16) | (02))
+#define EFI_SPECIFICATION_VERSION EFI_SYSTEM_TABLE_REVISION
+#define EFI_SYSTEM_TABLE_REVISION EFI_2_100_SYSTEM_TABLE_REVISION
+
 typedef struct {
-	EFITableHeader                  header;
-
-	wchar_t*                        *firmwareVendor;
-    uint32_t                        firmwareRevision;
-
-    EFIHandle                       consoleInHandle;
-    SimpleTextInputInterface        *conIn;
-
-    EFIHandle                       consoleOutHandle;
-    SimpleTextOutputInterface       *conOut;
-
-    EFIHandle                       standardErrorHandle;
-    SimpleTextOutputInterface       *stdErr;
-
-    EFIRuntimeServices              *runtimeServices;
-    EFIBootServices                 *bootServices;
-
-    uintn_t                         numberOfTableEntries;
-    EFIConfigurationTable           *configurationTable;
-} EFISystemTable;
-
+	EFI_TABLE_HEADER                  Hdr;
+	CHAR16                            *FirmwareVendor;
+	UINT32                            FirmwareRevision;
+	EFI_HANDLE                        ConsoleInHandle;
+	EFI_SIMPLE_TEXT_INPUT_PROTOCOL    *ConIn;
+	EFI_HANDLE                        ConsoleOutHandle;
+	EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL   *ConOut;
+	EFI_HANDLE                        StandardErrorHandle;
+	EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL   *StdErr;
+	EFI_RUNTIME_SERVICES              *RuntimeServices;
+	EFI_BOOT_SERVICES                 *BootServices;
+	UINTN                             NumberOfTableEntries;
+	EFI_CONFIGURATION_TABLE           *ConfigurationTable;
+} EFI_SYSTEM_TABLE;
 
 #ifdef __cplusplus
 }
