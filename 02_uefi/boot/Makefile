@@ -9,7 +9,7 @@
 # compiler flags
 #######################################
 # cpu arch
-CPU           := -m32 -mno-sse -mno-mmx
+CPU           := -m32 -mno-sse -mno-mmx -DCONFIG_32_BIT
 CPUEM         := -melf_i386
 
 # c flags
@@ -39,8 +39,11 @@ INCLUDES      += -I./uefi/
 all:
 	x86_64-elf-gcc $(CPU) $(CFLAGS) $(INCLUDES) -c ./uefi/crt0_efi_ia32.c -o ./uefi/crt0_efi_ia32.o
 	x86_64-elf-gcc $(CPU) $(CFLAGS) $(INCLUDES) -c boot.c -o boot.o
-	x86_64-elf-ld $(PUEM) $(LDFLAGS) ./uefi/crt0_efi_ia32.o boot.o -o village-boot.so
+	x86_64-elf-ld $(CPUEM) $(LDFLAGS) ./uefi/crt0_efi_ia32.o boot.o -o village-boot.so
 	x86_64-elf-objcopy $(CPFLAGS) village-boot.so village-boot.efi
+
+test:
+	qemu-system-i386 -s -pflash ../ovmf/bios32.bin -m 64 -hda fat:rw:./
 
 clean:
 	rm *.o *.so *.efi ./uefi/*.o
