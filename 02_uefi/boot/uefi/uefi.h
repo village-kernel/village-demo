@@ -369,31 +369,31 @@ typedef struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL {
 
 
 /// @brief Attributes
-#define EFI_BLACK                             0x00
-#define EFI_BLUE                              0x01
-#define EFI_GREEN                             0x02
-#define EFI_CYAN                              0x03
-#define EFI_RED                               0x04
-#define EFI_MAGENTA                           0x05
-#define EFI_BROWN                             0x06
-#define EFI_LIGHTGRAY                         0x07
-#define EFI_BRIGHT                            0x08
-#define EFI_DARKGRAY(EFI_BLACK \| EFI_BRIGHT) 0x08
-#define EFI_LIGHTBLUE                         0x09
-#define EFI_LIGHTGREEN                        0x0A
-#define EFI_LIGHTCYAN                         0x0B
-#define EFI_LIGHTRED                          0x0C
-#define EFI_LIGHTMAGENTA                      0x0D
-#define EFI_YELLOW                            0x0E
-#define EFI_WHITE                             0x0F
-#define EFI_BACKGROUND_BLACK                  0x00
-#define EFI_BACKGROUND_BLUE                   0x10
-#define EFI_BACKGROUND_GREEN                  0x20
-#define EFI_BACKGROUND_CYAN                   0x30
-#define EFI_BACKGROUND_RED                    0x40
-#define EFI_BACKGROUND_MAGENTA                0x50
-#define EFI_BACKGROUND_BROWN                  0x60
-#define EFI_BACKGROUND_LIGHTGRAY              0x70
+#define EFI_BLACK                          0x00
+#define EFI_BLUE                           0x01
+#define EFI_GREEN                          0x02
+#define EFI_CYAN                           0x03
+#define EFI_RED                            0x04
+#define EFI_MAGENTA                        0x05
+#define EFI_BROWN                          0x06
+#define EFI_LIGHTGRAY                      0x07
+#define EFI_BRIGHT                         0x08
+#define EFI_DARKGRAY                       0x08
+#define EFI_LIGHTBLUE                      0x09
+#define EFI_LIGHTGREEN                     0x0A
+#define EFI_LIGHTCYAN                      0x0B
+#define EFI_LIGHTRED                       0x0C
+#define EFI_LIGHTMAGENTA                   0x0D
+#define EFI_YELLOW                         0x0E
+#define EFI_WHITE                          0x0F
+#define EFI_BACKGROUND_BLACK               0x00
+#define EFI_BACKGROUND_BLUE                0x10
+#define EFI_BACKGROUND_GREEN               0x20
+#define EFI_BACKGROUND_CYAN                0x30
+#define EFI_BACKGROUND_RED                 0x40
+#define EFI_BACKGROUND_MAGENTA             0x50
+#define EFI_BACKGROUND_BROWN               0x60
+#define EFI_BACKGROUND_LIGHTGRAY           0x70
 //
 // Macro to accept color values in their raw form to create
 // a value that represents both a foreground and background
@@ -405,8 +405,7 @@ typedef struct _EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL {
 // are acceptable.
 //
 // Do not use EFI_BACKGROUND_xxx values with this macro.
-//#define EFI_TEXT_ATTR(Foreground,Background) \
-((Foreground) | ((Background) << 4))
+//#define EFI_TEXT_ATTR(Foreground,Background) ((Foreground) | ((Background) << 4))
 
 
 /// @brief Declaration structure

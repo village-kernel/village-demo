@@ -5,3 +5,4 @@
 *.img
 *.efi
 *.so
+NvVars
