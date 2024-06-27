@@ -1,0 +1,43 @@
+mainmenu "Main Menu"
+
+comment "This is comment"
+
+choice
+	prompt "select"
+
+	config ITEM0
+		bool "item0"
+
+	config ITEM1
+		bool "item1"
+endchoice
+
+menu "menu"
+	config MENU0
+		bool "menu0"
+
+	config MENU1
+		bool "menu1"
+endmenu
+
+config MODULE
+	bool "module"
+	option modules
+	default y
+
+config OPTION
+	bool "option"
+	default y
+
+config TRISTATE
+	tristate "tristate"
+	default m
+
+config STRING
+	string "string"
+	default "string"
+
+config VERBOSE_MODE
+	bool "verbose mode"
+	default n
+	

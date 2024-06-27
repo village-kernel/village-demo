@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "./02_uefi"
+		},
+		{
+			"path": "03_kconfig"
 		}
 	],
 	"settings": {}
